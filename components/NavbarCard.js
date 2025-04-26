@@ -5,12 +5,11 @@ import Link from 'next/link';
 // themeColor now expects the full Tailwind class name e.g., 'bg-employer-DEFAULT'
 export default function NavbarCard({ title, description, href, themeColor, icon: Icon }) {
   // Construct hover color dynamically (simple example, might need refinement)
-  const hoverColor = themeColor.replace('-DEFAULT', '-dark'); // e.g., bg-employer-DEFAULT -> bg-employer-dark
 
   return (
     <Link
       href={href}
-      className={`block p-6 rounded-xl shadow-lg hover:shadow-xl transition ${themeColor} text-white hover:${hoverColor}`} // Apply colors directly
+      className={`block p-6 rounded-xl shadow-lg hover:shadow-xl transition-colors duration-300 bg-primary-dark hover:bg-primary-DEFAULT text-white`} // Apply colors directly
     >
       <div className="flex items-start space-x-4"> {/* Use items-start for better alignment */}
         <div className="flex-shrink-0"> {/* Prevent icon from shrinking */}

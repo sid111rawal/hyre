@@ -1,156 +1,140 @@
-/* pages/employer.js */
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
-import JobCard from '../components/JobCard';
-import PostJobModal from '../components/PostJobModal';
-import ApplicationCard from '../components/ApplicationCard';
-import { PlusCircleIcon } from '@heroicons/react/24/solid';
-import { PrismaClient } from '@prisma/client'; // Import PrismaClient
+import { PrismaClient } from '@prisma/client';
+import { useRouter } from 'next/router';
+import withMiddleware from './api/middleware';
 
-// Receive props passed from _app.js
-export default function Employer({ currentRole, onRoleChange, initialJobs }) { // Receive initialJobs
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [postedShifts, setPostedShifts] = useState(initialJobs || []); // Use initialJobs
-    const [selectedJobId, setSelectedJobId] = useState(null);
-    const [applications, setApplications] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null); // Add error state
+const prisma = new PrismaClient();
 
-    // Fetch applications for a selected job
-    useEffect(() => {
-        const fetchApplications = async () => {
-            if (!selectedJobId) {
-                setApplications([]);
-                return;
-            }
+function EmployerPage({ initialJobs }) {
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+    const [jobs, setJobs] = useState(initialJobs);
+    const [title, setTitle] = useState(''); 
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('');
+    const [pay, setPay] = useState('');
+    const [time, setTime] = useState('');
+    const router = useRouter();
 
-            setIsLoading(true);
-            try {
-                const response = await fetch(`/api/applications?jobId=${selectedJobId}`); // Adjust API endpoint if needed
-                if (!response.ok) throw new Error('Failed to fetch applications');
-                const data = await response.json();
-                setApplications(data.applications || []); // Assuming API returns { applications: [] }
-            } catch (error) {
-                console.error('Error fetching applications:', error);
-                setError(error.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchApplications();
-    }, [selectedJobId]);
-
-    // Handle posting a new job
-    const handlePostJob = async (jobData) => {
-        setIsLoading(true);
-        setError(null);
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         try {
             const response = await fetch('/api/jobs', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(jobData),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title, description, category, pay, time }),
             });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to post job');
+
+            if (response.ok) { 
+                fetchJobs();
+
+                console.log('Job created successfully');
+            } else {
+                // Handle error, e.g., show an error message
+                console.error('Failed to create job');
             }
-            const result = await response.json();
-            setPostedShifts((prevShifts) => [result.job, ...prevShifts]);
-            setIsModalOpen(false); // Close the modal on success
-            alert('Job posted successfully!');
         } catch (error) {
-            console.error('Error posting job:', error);
-            setError(error.message);
-            alert(`Error: ${error.message}`);
-        } finally {
-            setIsLoading(false);
+            console.error('Error creating job:', error);
         }
     };
 
-    // Handle job card actions
-    const handleApplicantAction = (action, jobId) => {
-        console.log(`Action: ${action} for Job ID: ${jobId}`);
-        if (action === 'view') {
-            setSelectedJobId(jobId);
+    const fetchJobs = async () => {
+        try {
+            const response = await fetch('/api/jobs/list');
+            if (response.ok) {
+                const data = await response.json();
+                setJobs(data); 
+            } else {
+                console.error('Failed to fetch jobs');
+            }
+        } catch (error) {
+            console.error('Error fetching jobs:', error);
         }
-        // Implement other actions as needed
     };
+
+    const handleDelete = async (jobId) => {
+        try {
+            const response = await fetch(`/api/jobs/${jobId}`, {
+                method: 'DELETE',
+            });
+    
+            if (response.ok) {
+                fetchJobs(); // Refresh job list after deletion
+            } else {
+                console.error('Failed to delete job');
+            }
+        } catch (error) {
+            console.error('Error deleting job:', error);
+        }
+    };
+
+
+
+
 
     return (
-        <Layout title="Employer Dashboard" currentRole={currentRole} onRoleChange={onRoleChange}>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-text-primary">Posted Shifts & Applicants</h2>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary-dark transition text-sm font-medium shadow-sm"
-                >
-                    <PlusCircleIcon className="h-5 w-5 mr-1.5" />
-                    Post New Job
-                </button>
+        <div>
+            <h1>Employer page</h1>
+            <div>
+                <h2>Existing Jobs</h2> 
+                {jobs.map((job) => (
+                    <div key={job.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '10px 0' }}>
+                        <h3>{job.title}</h3>
+                        <p>Description: {job.description}</p>
+                        <p>Category: {job.category}</p>
+                        <p>Pay: ${job.pay}</p>
+                        <p>Time: {job.time}</p>                        
+                        <p>Created At: {formatDate(job.createdAt)}</p>
+                        <button onClick={() => handleDelete(job.id)}>Delete</button>
+                    </div>
+                ))}
             </div>
-
-            {error && <div className="text-red-500 mb-4">Error: {error}</div>} {/* Display error */}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-4">
-                    <h3 className="text-xl font-semibold text-text-secondary mb-2">Your Job Postings</h3>
-                    {isLoading && !selectedJobId && <p>Loading jobs...</p>}
-                    {!isLoading && postedShifts.length === 0 && <p className="text-text-secondary">You haven't posted any jobs yet.</p>}
-                    {postedShifts.map((shift) => (
-                        <JobCard
-                            key={shift.id}
-                            job={shift}
-                            variant="employer"
-                            onAction={(action) => handleApplicantAction(action, shift.id)}
-                        />
-                    ))}
+            <h2>Create a New Job</h2>
+            <form onSubmit={handleSubmit}>
+                <div>
+                    <label htmlFor="title">Title:</label>
+                    <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 </div>
-
-                <div className="lg:col-span-1 space-y-4">
-                    <h3 className="text-xl font-semibold text-text-secondary mb-2">
-                        {selectedJobId ? `Applicants for Job #${selectedJobId.split('-')[1]}` : 'Select a Job to View Applicants'}
-                    </h3>
-                    {isLoading && selectedJobId && <p>Loading applicants...</p>}
-                    {!isLoading && selectedJobId && applications.length === 0 && <p className="text-text-secondary">No applications yet for this job.</p>}
-                    {!isLoading && applications.map((app) => (
-                        <ApplicationCard key={app.id} application={app} />
-                    ))}
+                <div>
+                    <label htmlFor="description">Description:</label>
+                    <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
                 </div>
-            </div>
-
-            <PostJobModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onPost={handlePostJob} />
-        </Layout>
+                <div>
+                    <label htmlFor="category">Category:</label>
+                    <input type="text" id="category" value={category} onChange={(e) => setCategory(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="pay">Pay:</label>
+                    <input type="number" id="pay" value={pay} onChange={(e) => setPay(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="time">Time:</label>
+                    <input type="text" id="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+                </div>
+                <button type="submit">Create Job</button>
+            </form>
+        </div>
     );
 }
 
-// --- Server-Side Data Fetching ---
-export async function getServerSideProps(context) {
+export const getServerSideProps = withMiddleware(async (context) => { 
     try {
-        const prisma = new PrismaClient();
-        // ** IMPORTANT:  Replace 'someEmployerId' with actual logic to get the current employer's ID.
-        // ** This might involve session management, authentication context, or similar.
-        const employerId = 'someEmployerId'; //  Placeholder!
-
-        const jobs = await prisma.job.findMany({
-            where: { employerId: employerId },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                _count: { select: { applications: true } }, // Include count of applications
-            },
-        });
-
+        const jobs = await prisma.job.findMany();
         await prisma.$disconnect();
-
-        // Serialize dates to avoid Next.js serialization issues
         const serializedJobs = jobs.map(job => ({
             ...job,
+
             createdAt: job.createdAt.toISOString(),
             updatedAt: job.updatedAt.toISOString(),
         }));
 
+
         return {
-            props: { initialJobs: JSON.parse(JSON.stringify(serializedJobs)) }, // MUST serialize dates!
+            props: { initialJobs: JSON.parse(JSON.stringify(serializedJobs)) },
         };
     } catch (error) {
         console.error('Error fetching employer jobs:', error);
@@ -158,4 +142,6 @@ export async function getServerSideProps(context) {
             props: { initialJobs: [], error: 'Failed to load jobs.' },
         };
     }
-}
+ });
+
+export default EmployerPage;

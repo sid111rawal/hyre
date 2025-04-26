@@ -1,6 +1,5 @@
 /* components/ApplicationCard.js */
 import React from 'react';
-import { CheckCircleIcon } from '@heroicons/react/24/solid'; // Using solid icon
 
 export default function ApplicationCard({ application }) {
   return (
@@ -12,10 +11,9 @@ export default function ApplicationCard({ application }) {
       {/* <p className="text-xs text-text-secondary">Applied on: {new Date(application.date).toLocaleDateString()}</p> */}
 
       {/* Use employer colors for the action button */}
-      <button className="mt-2 w-full flex items-center justify-center px-4 py-2 bg-employer-DEFAULT rounded-md text-employer-text hover:bg-employer-dark transition duration-150 ease-in-out text-sm font-medium">
-        <CheckCircleIcon className="h-4 w-4 mr-1.5" />
+      <button className="mt-2 w-full px-4 py-2 bg-red-DEFAULT rounded-md text-white hover:bg-red-dark transition duration-300 ease-in-out text-sm font-bold">
         Select Applicant
       </button>
     </div>
-  );
+  ); 
 }

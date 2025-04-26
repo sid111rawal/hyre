@@ -1,6 +1,9 @@
 /* pages/index.js */
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import NavbarCard from '../components/NavbarCard';
+import withMiddleware from './api/middleware';
+
 import { UserIcon, BriefcaseIcon, UserPlusIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 
 // Simple form component (can be moved to its own file: components/AddUserForm.js)
@@ -34,7 +37,7 @@ const AddUserForm = ({ userType, onSubmit }) => {
 
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 bg-primary-DEFAULT rounded-xl shadow-md space-y-4 border border-primary-light">
+    <form onSubmit={handleSubmit} className="p-6 bg-primary-DEFAULT rounded-xl shadow-md space-y-4 border border-primary-light ">
       <h3 className={`text-xl font-semibold ${colorClass} flex items-center`}>
         <Icon className="h-6 w-6 mr-2" />
         Add New {isEmployer ? 'Employer' : 'Worker'}
@@ -73,6 +76,8 @@ const AddUserForm = ({ userType, onSubmit }) => {
 
 
 export default function Home() {
+  const router = useRouter();
+
   const [isLoading, setIsLoading] = useState(false); // Basic loading state
 
   const handleAddUser = async (userData) => {
@@ -110,24 +115,45 @@ export default function Home() {
     }
   };
 
+    const handleLogout = async () => {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        localStorage.removeItem('role');
+        router.push('/login');
+      } catch (error) {
+        console.error('Error during logout:', error);
+      }
+    };
+
+
+
+
+
+    const role = localStorage.getItem('role');
 
   return (
+    <div>
+         <div className="text-center mb-4">User Role: {role}</div>
+         <h1>
+            Index page
+            <button onClick={handleLogout}>Logout</button>
+        </h1>
     // No Layout component here, it's a standalone landing page
-    <div className="min-h-screen bg-primary-light p-6 md:p-10">
-      <header className="text-center mb-10">
+    <div className="min-h-screen bg-primary-light p-6 md:p-10 ">
+      <header className="text-center mb-10 ">
          {/* Optional: Add Logo */}
          {/* <img src="/logo.png" alt="Platform Logo" className="mx-auto h-12 w-auto mb-4"/> */}
-        <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
+        <h1 className="text-3xl md:text-4xl font-bold text-white">
             Temporary Work Platform
         </h1>
-        <p className="mt-2 text-text-secondary">
+        <p className="mt-2 text-text-secondary text-gray-400">
             Connect employers with hourly workers quickly and efficiently.
         </p>
       </header>
 
 
       {/* Navigation Section */}
-       <section className="max-w-4xl mx-auto mb-12">
+       <section className="max-w-4xl mx-auto mb-12 ">
           <h2 className="text-2xl font-semibold text-center text-text-primary mb-6">Get Started</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <NavbarCard
@@ -148,14 +174,22 @@ export default function Home() {
       </section>
 
        {/* Manual Add Section */}
-      <section className="max-w-4xl mx-auto">
-           <h2 className="text-2xl font-semibold text-center text-text-primary mb-6">Or, Add Users Manually (Admin)</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="max-w-4xl mx-auto ">
+           <h2 className="text-2xl font-semibold text-center text-white mb-6">Or, Add Users Manually (Admin)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
                 <AddUserForm userType="employer" onSubmit={handleAddUser} />
                 <AddUserForm userType="worker" onSubmit={handleAddUser} />
-            </div>
+            </div>    
             {isLoading && <p className="text-center mt-4 text-secondary">Adding user...</p>}
       </section>
     </div>
   );
-}
+    </div>
+  );
+};
+
+export const getServerSideProps = withMiddleware(async (context) => {
+  return {
+    props: {},
+  };
+});
