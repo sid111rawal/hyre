@@ -1,22 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { PrismaClient } from '@prisma/client';
-import { useRouter } from 'next/router';
-import withMiddleware from './api/middleware';
-
-const prisma = new PrismaClient();
-
+import prisma from '../prisma.js';
+    
 function EmployerPage({ initialJobs }) {
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
     const [jobs, setJobs] = useState(initialJobs);
-    const [title, setTitle] = useState(''); 
+    const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [pay, setPay] = useState('');
     const [time, setTime] = useState('');
-    const router = useRouter();
+
+    const fetchJobs = async () => {
+        try {
+            const response = await fetch('/api/jobs/list');
+            if (response.ok) {
+                const data = await response.json();
+                setJobs(data);
+            } else {
+                console.error('Failed to fetch jobs');
+            }
+        } catch (error) {
+            console.error('Error fetching jobs:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchJobs();
+    }, []);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -29,30 +42,19 @@ function EmployerPage({ initialJobs }) {
                 body: JSON.stringify({ title, description, category, pay, time }),
             });
 
-            if (response.ok) { 
+            if (response.ok) {
                 fetchJobs();
-
+                setTitle('');
+                setDescription('');
+                setCategory('');
+                setPay('');
+                setTime('');
                 console.log('Job created successfully');
             } else {
-                // Handle error, e.g., show an error message
                 console.error('Failed to create job');
             }
         } catch (error) {
             console.error('Error creating job:', error);
-        }
-    };
-
-    const fetchJobs = async () => {
-        try {
-            const response = await fetch('/api/jobs/list');
-            if (response.ok) {
-                const data = await response.json();
-                setJobs(data); 
-            } else {
-                console.error('Failed to fetch jobs');
-            }
-        } catch (error) {
-            console.error('Error fetching jobs:', error);
         }
     };
 
@@ -61,9 +63,9 @@ function EmployerPage({ initialJobs }) {
             const response = await fetch(`/api/jobs/${jobId}`, {
                 method: 'DELETE',
             });
-    
+
             if (response.ok) {
-                fetchJobs(); // Refresh job list after deletion
+                fetchJobs();
             } else {
                 console.error('Failed to delete job');
             }
@@ -72,22 +74,18 @@ function EmployerPage({ initialJobs }) {
         }
     };
 
-
-
-
-
     return (
         <div>
             <h1>Employer page</h1>
             <div>
-                <h2>Existing Jobs</h2> 
+                <h2>Existing Jobs</h2>
                 {jobs.map((job) => (
                     <div key={job.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '10px 0' }}>
                         <h3>{job.title}</h3>
                         <p>Description: {job.description}</p>
                         <p>Category: {job.category}</p>
                         <p>Pay: ${job.pay}</p>
-                        <p>Time: {job.time}</p>                        
+                        <p>Time: {job.time}</p>
                         <p>Created At: {formatDate(job.createdAt)}</p>
                         <button onClick={() => handleDelete(job.id)}>Delete</button>
                     </div>
@@ -121,17 +119,14 @@ function EmployerPage({ initialJobs }) {
     );
 }
 
-export const getServerSideProps = withMiddleware(async (context) => { 
+export const getServerSideProps = async (context) => {
     try {
         const jobs = await prisma.job.findMany();
-        await prisma.$disconnect();
         const serializedJobs = jobs.map(job => ({
             ...job,
-
             createdAt: job.createdAt.toISOString(),
             updatedAt: job.updatedAt.toISOString(),
         }));
-
 
         return {
             props: { initialJobs: JSON.parse(JSON.stringify(serializedJobs)) },
@@ -141,7 +136,7 @@ export const getServerSideProps = withMiddleware(async (context) => {
         return {
             props: { initialJobs: [], error: 'Failed to load jobs.' },
         };
-    }
- });
+    };
+};
 
 export default EmployerPage;

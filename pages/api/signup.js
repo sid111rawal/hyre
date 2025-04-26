@@ -1,79 +1,68 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import prisma from '../../prisma.js';
+import bcrypt from 'bcrypt'; 
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { name, email, password, role, username } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: 'Name is required' });
-    }
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-    if (password.length < 8) {
-      return res
-        .status(400)
-        .json({ message: 'Password must be at least 8 characters long' });
-    }
-    if (!['WORKER', 'EMPLOYER'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role' });
-    }
+    const adminEmail = 'admin@admin.com';
+    const adminPasswordPlain = 'password';
 
     try {
-      // Check if the email already exists
-      const existingUser = await prisma.worker.findUnique({ where: { email } });
-      const existingUsername = await prisma.worker.findUnique({
-        where: { username },
-      });
-      if (existingUsername) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-      if (existingUser) {
-        return res.status(400).json({ message: 'Email already exists' });
-      }
-      const existingEmployer = await prisma.employer.findUnique({where : {email}})
-      if (existingEmployer){
-        return res.status(400).json({ message: 'Email already exists' });
-      }
+        const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
+        const adminPasswordHashed = await bcrypt.hash(adminPasswordPlain, 10);
 
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-      // Create the user in the database
-      if (role == 'WORKER') {
-        await prisma.worker.create({
-          data: {
-            name,
-            email,
-            password: hashedPassword,
-            role,
-            username,
-          },
-        });
-      } else if (role == 'EMPLOYER') {
-        await prisma.employer.create({
-          data: {
-            name,
-            email,
-            password: hashedPassword,
-            role,
-            username,
-          },
-        });
-      }
+        if (adminUser) {
+            // Admin user exists, update their password
+            await prisma.user.update({
+                where: { email: adminEmail },
+                data: {
+                    password: adminPasswordHashed,
+                    isAdmin: true, // Ensure isAdmin is true
+                },
+            });
+            console.log("Admin user password updated.");
+        } else {
+            // Admin user does not exist, create it
+            await prisma.user.create({
+                data: {
+                    email: adminEmail,
+                    password: adminPasswordHashed,
+                    isAdmin: true,
+                },
+            });
+            console.log("Admin user created.");
+        }
 
-      res.status(200).json({ message: 'User created successfully' });
-    } catch (error) {
-      console.log(error);
-      console.error('Error creating user:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    } catch (e) {
+        console.error("Error ensuring admin user exists:", e);
     }
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
-  }
+
+
+    if (req.method === 'POST') {
+        const { email, password, name } = req.body;
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required.' });
+        }
+
+        try {
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Create new user
+            const newUser = await prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    name: name || null,
+                },
+            });
+            return res.status(201).json({ message: 'User created successfully.', user: newUser });
+        } catch (error) {
+            console.error('Error creating user:', error);
+            return res.status(500).json({ message: 'Failed to create user.' });
+        }
+    } else {
+        res.setHeader('Allow', ['POST']);
+        return res.status(405).json({ message: 'Method not allowed.' });
+    }
 }
