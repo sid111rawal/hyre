@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql" // Ensure this matches your database
-  url      = env("DATABASE_URL") // Loads the connection string from .env
+  url      = "postgresql://user:password@localhost:5432/mydb?schema=public"
 }
 
 enum Roles {
@@ -17,6 +17,15 @@ enum Roles {
   WORKER
 }
 
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  email    String @unique
+  name     String?
+  password String
+
+  @@map("users")
+}
+
 // --- User Models ---
 model Employer {
   id        String   @id @default(cuid()) // Using CUIDs for IDs
@@ -24,9 +33,9 @@ model Employer {
   name      String?
   username String @unique
   password  String // Store the HASHED password here
-  companyName String? // Optional company name
-  role        Roles     @default(EMPLOYER)
-
+  companyName String?   // Optional company name
+  role        Roles     @default(EMPLOYER) 
+  
   sessions    Session[] // Relation: One Employer has many sessions
   
   jobs      Job[] // Relation: One Employer has many Jobs
@@ -41,7 +50,8 @@ model Worker {
   password  String // Store the HASHED password here
   skills    String[] @default([]) // Example: list of skills
   role Roles @default(WORKER)
-  sessions    Session[] // Relation: One Worker has many sessions
+  sessions Session[] // Relation: One Worker has many sessions
+
 
   applications Application[] // Relation: One Worker has many Applications
   createdAt DateTime @default(now())

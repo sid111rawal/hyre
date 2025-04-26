@@ -1,6 +1,7 @@
 /* pages/_app.js */
 import '../styles/globals.css';
 import { useState, useEffect } from 'react';
+import { SessionProvider } from 'next-auth/react';
 import { useRouter } from 'next/router';
 
 
@@ -36,13 +37,15 @@ export default function App({ Component, pageProps }) {
     onRoleChange: handleRoleChange,
   };
 
-  return (    
-    <div className="bg-black min-h-screen">
-      <div className="container mx-auto p-4">
-        <main>
-          <Component {...enhancedPageProps} />
-        </main>
+  return (
+    <SessionProvider session={pageProps.session}>
+      <div className="bg-black min-h-screen">
+        <div className="container mx-auto p-4">
+          <main>
+            <Component {...enhancedPageProps} />
+          </main>
+        </div>
       </div>
-    </div>
+    </SessionProvider>
   );
 }
