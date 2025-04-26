@@ -1,0 +1,23 @@
+{
+  "name": "temporary-work-platform",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.6.0",
+    "bcrypt": "^5.1.1",
+    "framer-motion": "^8.0.0",
+    "next": "14.x",
+    "react": "18.x",
+    "react-dom": "18.x",
+    "tailwindcss": "^3.4.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
+  }
+}

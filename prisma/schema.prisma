@@ -1,0 +1,75 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Ensure this matches your database
+  url      = env("DATABASE_URL") // Loads the connection string from .env
+}
+
+// --- User Models ---
+model Employer {
+  id        String   @id @default(cuid()) // Using CUIDs for IDs
+  email     String   @unique
+  name      String
+  password  String // Store the HASHED password here
+  companyName String? // Optional company name
+
+  jobs      Job[] // Relation: One Employer has many Jobs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Worker {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String // Store the HASHED password here
+  skills    String[] @default([]) // Example: list of skills
+
+  applications Application[] // Relation: One Worker has many Applications
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+// --- Job & Application Models ---
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String
+  pay         Float    // Use Float for currency amounts
+  time        String   // e.g., "4:30 PM - 9:00 PM"
+  status      String   @default("open") // e.g., open, filled, completed
+
+  employerId  String
+  employer    Employer @relation(fields: [employerId], references: [id], onDelete: Cascade) // Relation: Belongs to one Employer
+
+  applications Application[] // Relation: One Job has many Applications
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employerId]) // Index for faster lookups by employer
+}
+
+model Application {
+  id         String   @id @default(cuid())
+  status     String   @default("pending") // e.g., pending, accepted, rejected
+
+  jobId      String
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade) // Relation: Belongs to one Job
+
+  workerId   String
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade) // Relation: Belongs to one Worker
+
+  appliedAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([jobId, workerId]) // Ensure a worker can apply only once per job
+  @@index([jobId])
+  @@index([workerId])
+}
