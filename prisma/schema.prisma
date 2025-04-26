@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Ensure this matches your database
-  url      = "postgresql://user:password@localhost:5432/mydb?schema=public"
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_g4SYHnsNA2lq@ep-old-term-a1iyh3fx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 }
 
 enum Roles {
@@ -35,9 +35,9 @@ model Employer {
   password  String // Store the HASHED password here
   companyName String?   // Optional company name
   role        Roles     @default(EMPLOYER) 
-  
+
   sessions    Session[] // Relation: One Employer has many sessions
-  
+
   jobs      Job[] // Relation: One Employer has many Jobs
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -52,7 +52,7 @@ model Worker {
   role Roles @default(WORKER)
   sessions Session[] // Relation: One Worker has many sessions
 
-
+  
   applications Application[] // Relation: One Worker has many Applications
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

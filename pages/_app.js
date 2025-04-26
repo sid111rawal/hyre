@@ -1,51 +1,14 @@
-/* pages/_app.js */
-import '../styles/globals.css';
-import { useState, useEffect } from 'react';
-import { SessionProvider } from 'next-auth/react';
-import { useRouter } from 'next/router';
+--- a/pages/_app.js
++++ b/pages/_app.js
 
+/* pages/_app.js*/
+import "../styles/globals.css";
+import { SessionProvider } from "next-auth/react";
 
-export default function App({ Component, pageProps }) {
-  const [currentRole, setCurrentRole] = useState(null);
-
-  const router = useRouter();
-
-  useEffect(() => {
-    if (router.pathname.startsWith('/employer')) {
-      setCurrentRole('employer');
-    } else if (router.pathname.startsWith('/worker')) {
-      setCurrentRole('worker');
-    } else if (router.pathname === '/') {
-      setCurrentRole(null);
-    }
-  }, [router.pathname]);
-
-  const handleRoleChange = (newRole) => {
-    if (newRole) {
-      setCurrentRole(newRole);
-    } else {
-      router.push('/login');
-      return;
-    }
-
-  };
-
-
-  const enhancedPageProps = {
-    ...pageProps,
-    currentRole,
-    onRoleChange: handleRoleChange,
-  };
-
+export default function App({ Component, pageProps: { session, ...pageProps } }) {
   return (
-    <SessionProvider session={pageProps.session}>
-      <div className="bg-black min-h-screen">
-        <div className="container mx-auto p-4">
-          <main>
-            <Component {...enhancedPageProps} />
-          </main>
-        </div>
-      </div>
+    <SessionProvider session={session}>
+      <Component {...pageProps} />
     </SessionProvider>
   );
 }
